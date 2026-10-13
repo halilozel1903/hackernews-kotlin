@@ -32,8 +32,23 @@ set_night_mode() {
 # loaded, or "SCENE_FAILED <scene>: <reason>" when a request fails.
 SCENE_TAG="${SCENE_TAG:-HackerNewsScene}"
 
+# The emulator runner unlocks the screen with a key event, which leaves the device in keyboard
+# (non-touch) mode: the app would then show a focus highlight on its first button. A tap on the
+# empty middle of the home screen switches back to touch mode before the app starts.
+enter_touch_mode() {
+  local size w h
+  size="$(adb shell dumpsys window displays | grep -oE 'cur=[0-9]+x[0-9]+' | head -1 | cut -d= -f2 | tr -d '\r' || true)"
+  w="${size%x*}"
+  h="${size#*x}"
+  if [ -n "$size" ] && [ "$w" -gt 0 ] && [ "$h" -gt 0 ]; then
+    adb shell input tap "$((w / 2))" "$((h / 2))"
+    sleep 1
+  fi
+}
+
 fresh_launch() {
   adb shell pm clear "$PKG" > /dev/null
+  enter_touch_mode
   adb logcat -c || true
   adb shell am start -W -n "$PKG/.MainActivity" "$@" > /dev/null
 }
