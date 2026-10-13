@@ -62,7 +62,7 @@ fun StoryScreen(repository: ReaderRepository, id: Long, onBack: (() -> Unit)?, o
         val ready = detail as? Load.Ready
         TopBar(
             title = if (ready != null) "Discussion" else "",
-            trailing = ready?.value?.comments?.let { pluralize(it.size, "comment") },
+            trailing = ready?.value?.let { commentCount(it) },
             onBack = onBack,
         )
         when (val state = detail) {
@@ -257,4 +257,15 @@ private fun RemovedText(text: String) {
         color = MaterialTheme.colorScheme.onSurfaceVariant,
         modifier = Modifier.padding(top = 4.dp),
     )
+}
+
+/** "292 comments", or "80 of 292 comments" when only part of the discussion was loaded. */
+private fun commentCount(detail: StoryDetail): String {
+    val loaded = detail.comments.size
+    val total = when (val story = detail.story) {
+        is Item.Story -> story.descendants
+        is Item.Poll -> story.descendants
+        else -> loaded
+    }
+    return if (loaded < total) "${"%,d".format(java.util.Locale.US, loaded)} of ${pluralize(total, "comment")}" else pluralize(loaded, "comment")
 }
